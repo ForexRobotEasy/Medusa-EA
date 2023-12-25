@@ -1,0 +1,128 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                          Medusa EA              |
+//|                                 Developer: Forex Robot Easy Team |
+//|                                      Website: forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+// Include necessary libraries and define constants
+#include <Trade/PositionInfo.mqh>
+#include <Trade/Trade.mqh>
+#include <Trade/TradeSignals.h>
+#include <Technical/Indicators/Indicators.mqh>
+
+#define STOP_LOSS_THRESHOLD 100   // Stop loss threshold in points
+#define TAKE_PROFIT_THRESHOLD 200 // Take profit threshold in points
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Initialize necessary variables and indicators
+    Indicator1 ind1;
+    Indicator2 ind2;
+    
+    // Configure indicator parameters
+    ind1.SetPeriod(14);
+    ind2.SetPeriod(20);
+    
+    return INIT_SUCCEEDED;
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    // Clean up any resources or variables used by the expert
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    double currentPrice = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+    
+    // Perform technical analysis using indicators
+    double ind1Value = ind1.GetSignal(currentPrice);
+    double ind2Value = ind2.GetSignal(currentPrice);
+    
+    // Perform price action analysis
+    bool bullishCandle = CheckBullishCandle();
+    bool bearishCandle = CheckBearishCandle();
+    
+    // Determine trading signal based on analysis
+    int signal = GetTradingSignal(ind1Value, ind2Value, bullishCandle, bearishCandle);
+    
+    // Check if there are any open positions
+    CPositionInfo positionInfo;
+    if (positionInfo.Total() == 0)
+    {
+        // No open positions, check if a new position should be opened
+        if (signal == BUY_SIGNAL)
+        {
+            // Open a new buy position
+            OpenPosition(_Symbol, POSITION_TYPE_BUY, currentPrice, STOP_LOSS_THRESHOLD, TAKE_PROFIT_THRESHOLD);
+        }
+        else if (signal == SELL_SIGNAL)
+        {
+            // Open a new sell position
+            OpenPosition(_Symbol, POSITION_TYPE_SELL, currentPrice, STOP_LOSS_THRESHOLD, TAKE_PROFIT_THRESHOLD);
+        }
+    }
+    else
+    {
+        // There are open positions, check if they need to be closed
+        for (int i = 0; i < positionInfo.Total(); i++)
+        {
+            CTrade trade;
+            trade.PositionSelect(positionInfo.GetTicket(i));
+            
+            // Check if the position needs to be closed based on signal
+            if ((signal == BUY_SIGNAL && trade.PositionType() == POSITION_TYPE_SELL) ||
+                (signal == SELL_SIGNAL && trade.PositionType() == POSITION_TYPE_BUY))
+            {
+                trade.PositionClose(positionInfo.GetTicket(i));
+            }
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Check if the current candle is bullish                           |
+//+------------------------------------------------------------------+
+bool CheckBullishCandle()
+{
+    // Implement logic to check if the current candle is bullish
+    return true;
+}
+
+//+------------------------------------------------------------------+
+//| Check if the current candle is bearish                           |
+//+------------------------------------------------------------------+
+bool CheckBearishCandle()
+{
+    // Implement logic to check if the current candle is bearish
+    return false;
+}
+
+//+------------------------------------------------------------------+
+//| Get the trading signal based on indicators and price action       |
+//+------------------------------------------------------------------+
+int GetTradingSignal(double ind1Value, double ind2Value, bool bullishCandle, bool bearishCandle)
+{
+    // Implement logic to determine the trading signal based on indicators and price action
+    if (ind1Value > 0 && ind2Value > 0 && bullishCandle)
+    {
+        return BUY_SIGNAL;
+    }
+    else if (ind1Value < 0 && ind2Value < 0 && bearishCandle)
+    {
+        return SELL_SIGNAL;
+    }
+    
+    return NO_SIGNAL;
+}
+
